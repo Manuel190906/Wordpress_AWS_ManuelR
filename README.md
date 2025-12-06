@@ -1,60 +1,49 @@
-# Wordpress_AWS_ManuelR
+# Despliegue WordPress HA en AWS – Documento Técnico
 
-Manual de Administrador – Despliegue WordPress HA en AWS
-1. Arquitectura de la solución
-Capas
-Capa 1 (Pública):
+## 1. Arquitectura
 
-Balanceador de carga Apache (BalanceadorManuel).
+### Capas
+- **Capa 1 (Pública):** Balanceador Apache (`BalanceadorManuel`).
+- **Capa 2 (Privada):** Dos servidores Apache (`Web1Manuel`, `Web2Manuel`) + Servidor NFS (`NFSManuel`).
+- **Capa 3 (Privada):** Servidor MariaDB/MySQL (`DBManuel`).
 
-Acceso desde Internet (HTTP/HTTPS).
+### Reglas de conectividad
+- Acceso externo solo a Capa 1.
+- Capa 1 no conecta directamente con Capa 3.
+- Capa 2 conecta con Capa 3.
 
-Conectividad solo hacia Capa 2.
+---
 
-Capa 2 (Privada):
+## 2. Seguridad
 
-Dos servidores Apache (Web1Manuel, Web2Manuel).
+### Grupos de Seguridad
+| Grupo          | Puertos     | Origen          |
+|----------------|-------------|-----------------|
+| SG-Balanceador | 80, 443     | Internet        |
+| SG-Web         | 80          | SG-Balanceador  |
+| SG-NFS         | 2049, 111   | SG-Web          |
+| SG-DB          | 3306        | SG-Web          |
 
-Servidor NFS (NFSManuel) exportando /var/www/html/wordpress.
+### ACLs
+- Bloquear tráfico Capa 1 → Capa 3.
+- Permitir Capa 1 → Capa 2.
+- Permitir Capa 2 → Capa 3.
 
-Conectividad hacia Capa 3 (BBDD).
+---
 
-Capa 3 (Privada):
+## 3. Aprovisionamiento (Script Bash)
 
-Servidor MariaDB/MySQL (DBManuel).
+Archivo: `deploy_wordpress.sh`
 
-Solo accesible desde Capa 2.
-
-No accesible desde Capa 1.
-
-2. Seguridad
-Grupos de Seguridad (SG)
-Grupo	Permite	Origen
-SG-Balanceador	80, 443	Internet (0.0.0.0/0)
-SG-Web	80	SG-Balanceador
-SG-NFS	2049 (NFS), 111 (rpcbind)	SG-Web
-SG-DB	3306	SG-Web
-ACLs
-Capa 1 → Capa 3: Bloqueada.
-
-Capa 2 → Capa 3: Permitida.
-
-Capa 1 → Capa 2: Permitida.
-
-3. Script de aprovisionamiento (Bash)
-Ejemplo de script deploy_wordpress.sh:
-
-bash
+```bash
 #!/bin/bash
 # Script de aprovisionamiento WordPress HA en AWS
 # Autor: Manuel Ramírez Rodríguez
 
-# Variables
 ALUMNO="Manuel"
 DOMAIN="midominio.com"
 WP_DIR="/var/www/html/wordpress"
 
-# Instalar Apache en balanceador
 setup_balanceador() {
   hostnamectl set-hostname "Balanceador${ALUMNO}"
   apt update && apt install -y apache2
@@ -74,7 +63,6 @@ EOF
   systemctl restart apache2
 }
 
-# Instalar Apache en servidores web
 setup_web() {
   hostnamectl set-hostname "$1${ALUMNO}"
   apt update && apt install -y apache2 php php-mysql nfs-common
@@ -84,7 +72,6 @@ setup_web() {
   systemctl restart apache2
 }
 
-# Instalar NFS
 setup_nfs() {
   hostnamectl set-hostname "NFS${ALUMNO}"
   apt update && apt install -y nfs-kernel-server
@@ -95,7 +82,6 @@ setup_nfs() {
   systemctl restart nfs-kernel-server
 }
 
-# Instalar MariaDB
 setup_db() {
   hostnamectl set-hostname "DB${ALUMNO}"
   apt update && apt install -y mariadb-server
@@ -105,12 +91,10 @@ setup_db() {
   mysql -e "FLUSH PRIVILEGES;"
 }
 
-# Personalizar WordPress
 customize_wp() {
   echo "<h1>WordPress de $ALUMNO</h1>" > $WP_DIR/index.php
 }
 
-# Ejecución
 case $1 in
   balanceador) setup_balanceador ;;
   web1) setup_web "Web1" "NFS${ALUMNO}" ;;
@@ -120,36 +104,3 @@ case $1 in
   wp) customize_wp ;;
   *) echo "Uso: $0 {balanceador|web1|web2|nfs|db|wp}" ;;
 esac
-4. Configuración de HTTPS
-Asociar Elastic IP al balanceador.
-
-Configurar DNS en el dominio del alumno (midominio.com → Elastic IP).
-
-Instalar Certbot en balanceador:
-
-bash
-apt install -y certbot python3-certbot-apache
-certbot --apache -d midominio.com -d www.midominio.com
-5. Documento Técnico (Markdown)
-En el repositorio GitHub incluir un archivo README.md con:
-
-Descripción de la arquitectura.
-
-Pasos de aprovisionamiento.
-
-Configuración de seguridad (SG + ACLs).
-
-Personalización de WordPress.
-
-URL pública de acceso.
-
-6. Validación
-Acceso externo solo por HTTPS.
-
-Balanceador distribuye tráfico entre Web1Manuel y Web2Manuel.
-
-WordPress personalizado muestra el nombre del alumno.
-
-Base de datos funcional en DBManuel.
-
-Certificado válido instalado.
