@@ -358,6 +358,4 @@ Acceder varias veces al dominio:
 
 ---
 
-# 📄 Despliegue WordPress en AWS – Documento Técnico
-
-
+### Realizado por: Manuel Ramírez Rodríguez.
