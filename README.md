@@ -209,98 +209,104 @@ Este documento presenta todas las fases de construcción de la infraestructura e
 
 ## 📦 1. Crear la VPC
 **1.1 Acceder al servicio VPC**  
-📌 Navega en AWS → VPC → Your VPCs → Create VPC  
+📌 Navega en AWS → VPC → Tus VPCs → "Boton Naranja" Crear VPC  
 *Descripción de la imagen*
 ![Captura de arquitectura](./imagenes/vpc.png)
 
-
 **1.2 Configurar la nueva VPC**  
-- Nombre: vcp-Wordpress
+- Nombre: vcp-Wordpress-ManuelRamirez
 - IPv4 CIDR: 10.0.0.0/16  
 - Tenancy: Default  
 *Descripción de la imagen*
-
+![Captura de arquitectura](./imagenes/VPC_creada.png)
 ---
 
 ## 🌐 2. Crear Subredes
 **2.1 Subred Pública 1 (Zona A)**  
-- Nombre: Publica  
-- CIDR: 10.0.1.0/24  
-- AZ: eu-west-1a  
+- Nombre: Publica_wordpress_ManuelRamírez  
+- CIDR: 10.0.0.0/24  
+- AZ: eu-west-1a
 
-**2.2 Subred Privada 1 (Zona B)**  
-- Nombre: PrivadaA-mario  
-- CIDR: 10.0.2.0/24  
+  **2.2 Subred Privada 1 (Zona B)**  
+- Nombre: Privada_wordpress_ManuelRamírez
+- CIDR: 10.0.1.0/24  
 - AZ: eu-west-1b  
 
 **2.3 Subred Privada 2 (Base de datos)**  
-- Nombre: PrivadaB-mario  
-- CIDR: 10.0.3.0/24  
-- AZ: eu-west-1a  
-*Descripción de la imagen*
+- Nombre: Privada_wordpress_bd_ManuelRamírez  
+- CIDR: 10.0.2.0/24  
+- AZ: eu-west-1a
+- 
+![Captura de arquitectura](./imagenes/Subredes.png)
 
 ---
-
 ## 🌍 3. Crear Internet Gateway
 **3.1 Crear el IGW**  
-VPC → Internet Gateways → Create Internet Gateway  
-*Descripción de la imagen*
-
+VPC → Internet Gateways → crear Internet Gateway  
 **3.2 Asociarlo a la VPC**  
-Seleccionar IGW → Actions → Attach to VPC  
+Seleccionar IGW → Acciones → Conectar to VPC  
 *Descripción de la imagen*
+![Captura de arquitectura](./imagenes/Gatewey.png)
+
+
 
 ---
 
 ## 🔄 4. Crear NAT Gateway (opcional para BD privada)
 **4.1 Crear Elastic IP**  
-EC2 → Network & Security → Elastic IPs  
+EC2 → Redes & Seguridad → IPs Elasticas  
 *Descripción de la imagen*
+![Captura de arquitectura](./imagenes/IP_elastica.png)
 
 **4.2 Crear NAT Gateway**  
-VPC → NAT Gateways → Create NAT Gateway  
-- Subred: Public-Subnet-A  
+VPC → NAT Gateways → Crear NAT Gateway  
+- Subred: gateway_wordpress_manuelr  
 - Elastic IP: creado antes  
 *Descripción de la imagen*
+![Captura de arquitectura](./imagenes/Gateways_NAT.png)
 
 ---
 
 ## 🚦 5. Tablas de Rutas
 **5.1 Tabla de rutas pública**  
 Ruta: 0.0.0.0/0 → IGW  
-*Descripción de la imagen*
-
 **5.2 Tabla de rutas privada (para BD)**  
 Ruta: 0.0.0.0/0 → NAT Gateway  
 *Descripción de la imagen*
+![Captura de arquitectura](./imagenes/Tablas_enrutamiento.png)
 
 ---
 
 ## 🔐 6. Crear Security Groups
-**6.1 SG-BAL (Balanceador)**  
+![Captura de arquitectura](./imagenes/GP_seguridad.png)
+
+**6.1 GP-BAL (Balanceador)**  
 Reglas de entrada:  
 - 80 (HTTP) → 0.0.0.0/0  
 - 443 (HTTPS) → 0.0.0.0/0  
 - 22 (SSH) → Tu IP  
 *Descripción de la imagen*
+![Captura de arquitectura](./imagenes/GP_BALANCER.png)
 
-**6.2 SG-WEB (Web1 y Web2)**  
+**6.2 GP-WEB (Web1 y Web2)**  
 Reglas:  
 - HTTP 80 → SG-BAL  
 - NFS 2049 → SG-NFS  
 - MySQL 3306 → SG-DB  
 *Descripción de la imagen*
+![Captura de arquitectura](./imagenes/GP_BACKEND.png)
 
-**6.3 SG-DB (MariaDB)**  
+**6.3 GP-DB (MariaDB)**  
 Reglas:  
-- 3306 → SG-WEB  
+- 3306 → GP-WEB  
 *Descripción de la imagen*
+![Captura de arquitectura](./imagenes/GP_DB.png)
 
-**6.4 SG-NFS**  
+**6.4 GP-NFS**  
 Reglas:  
-- 2049 → SG-WEB  
+- 2049 → GP-WEB  
 *Descripción de la imagen*
-
+![Captura de arquitectura](./imagenes/GP_NFS.png)
 ---
 
 ## 🖥️ 7. Crear las instancias EC2
@@ -308,9 +314,10 @@ Reglas:
 - AMI: debian  
 - Tipo: t2.micro  
 - Subred: Pública  
-- SG: SG-BAL  
+- SG: GP-BAL  
 - Script: balanceador.sh  
 *Descripción de la imagen*
+![Captura de arquitectura](./imagenes/Instacia_balance.png)
 
 **7.2 Instancias Web (WEB1 / WEB2)**  
 - AMI: debian  
@@ -319,6 +326,7 @@ Reglas:
 - SG: SG-WEB  
 - Script: web.sh  
 *Descripción de la imagen*
+![Captura de arquitectura](./imagenes/Instancia_web2.png)
 
 **7.3 Instancia de la Base de Datos**  
 - AMI: debian  
@@ -326,6 +334,7 @@ Reglas:
 - SG: SG-DB  
 - Script: db.sh  
 *Descripción de la imagen*
+![Captura de arquitectura](./imagenes/Instancia_DB.png)
 
 **7.4 Instancia del Servidor NFS**  
 - AMI: debian  
@@ -333,13 +342,14 @@ Reglas:
 - SG: SG-NFS  
 - Script: nfs.sh  
 *Descripción de la imagen*
-
+![Captura de arquitectura](./imagenes/Instancia_NFS.png)
 ---
 
 ## 🧪 8. Pruebas Finales
 **8.1 Comprobar el balanceo**  
 Acceder varias veces al dominio:  
 *Descripción de la imagen*
+![Captura de arquitectura](./imagenes/comprobació.png)
 
 ---
 
