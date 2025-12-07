@@ -1,25 +1,34 @@
 # Despliegue WordPress en AWS – Documento Técnico
 
-Índice del documento
-1. Arquitectura
-   1.1 Capas
-   1.2 Reglas de conectividad
 
-2. Seguridad 
-2.1 Grupos de seguridad 
-2.2 ACLs
+## Índice
+1. Introducción  
+2. Arquitectura  
+   2.1 Capas  
+   2.2 Reglas de conectividad  
+3. Seguridad  
+   3.1 Grupos de seguridad  
+   3.2 ACLs  
+4. Aprovisionamiento (scripts Bash)  
+   4.1 Balanceador  
+   4.2 NFS  
+   4.3 Webs  
+   4.4 Base de datos  
+5. Dominio y HTTPS  
+6. Entregables  
+7. Checklist de verificación  
+8. Criterios de evaluación  
+9. Acceso
 
-3. Aprovisionamiento (Scripts Bash) 
-3.1 Balanceador 
-3.2 NFS 
-3.3 Webs 
-3.4 Base de datos
+---
 
-4. Requisitos de la tarea y criterios de evaluación 
-4.1 Infraestructura y servicios 
-4.2 Entregables 
-4.3 Calificación y puntos
-## 1. Arquitectura
+##1. Introducción
+**Objetivo:** Desplegar WordPress en alta disponibilidad y escalable sobre AWS, siguiendo una arquitectura en tres capas con separación de responsabilidades, seguridad por grupos de seguridad y ACLs, y aprovisionamiento automático mediante scripts Bash.  
+**Alcance:** Se publica un sitio HTTPS bajo un dominio del alumno, balanceado con Apache, servido por dos backends que comparten contenido vía NFS y conectado a una base de datos MariaDB/MySQL en red privada.
+
+---
+
+## 2. Arquitectura
 
 ### Capas
 - **Capa 1 (Pública):** Balanceador Apache (`BalanceadorManuel`).
@@ -33,7 +42,7 @@
 
 ---
 
-## 2. Seguridad
+## 3. Seguridad
 
 ### Grupos de Seguridad
 | Grupo          | Puertos     | Origen          |
@@ -50,7 +59,7 @@
 
 ---
 
-## 3. Aprovisionamiento (Script Bash)
+## 4. Aprovisionamiento (Script Bash)
 
 Balanceador: ``
 
@@ -158,7 +167,7 @@ sudo a2dissite 000-default.conf
 sudo a2ensite wordpress.conf
 sudo systemctl reload apache2
 ```
-WEB's: ``
+Data Base: ``
 
 ```bash
 #!/bin/bash
@@ -187,3 +196,6 @@ sudo sed -i 's/^bind-address.*/bind-address = 10.0.2.244/' /etc/mysql/mariadb.co
 
 sudo systemctl restart mariadb
 ```
+Dominio y HTTPS
+Dominio público: manuelraws.myddns.me apuntando a una IP elástica del balanceador (Capa 1).
+Aplicación WordPress: https://manuelraws.myddns.me
