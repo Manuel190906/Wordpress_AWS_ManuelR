@@ -100,7 +100,7 @@ NFS: ``
 ```bash
 #!/bin/bash
 set -e
-sudo hostnamectl set-hostname WEB1manuelraws
+sudo hostnamectl set-hostname NFSmanuelraws
 sudo apt update
 sudo apt install nfs-common apache2 php libapache2-mod-php php-mysql php-curl php-gd php-xml php-mbstring php-xmlrpc php-zip php-soap php-intl -y
 
