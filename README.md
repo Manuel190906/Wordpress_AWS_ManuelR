@@ -14,8 +14,7 @@
    4.2 NFS  
    4.3 Webs  
    4.4 Base de datos  
-5. Dominio y HTTPS   
-6. Acceso
+5.  Infraestructura 
 
 ---
 
@@ -196,14 +195,14 @@ sudo systemctl restart mariadb
 # 🏗️ Despliegue de Infraestructura AWS — Paso a Paso con Capturas
 Este documento presenta todas las fases de construcción de la infraestructura en AWS, acompañadas de capturas reales de cada paso:
 
-- Creación de VPC  
-- Subredes  
-- Internet Gateway  
-- NAT Gateway  
-- Tablas de rutas  
-- Security Groups  
-- Instancias EC2  
-- Comprobaciones finales  
+1. Creación de VPC  
+2. Subredes  
+3. Internet Gateway  
+4. NAT Gateway  
+5. Tablas de rutas  
+6. Security Groups  
+7. Instancias EC2  
+8. Comprobaciones finales  
 
 ---
 
@@ -236,7 +235,7 @@ Este documento presenta todas las fases de construcción de la infraestructura e
 - Nombre: Privada_wordpress_bd_ManuelRamírez  
 - CIDR: 10.0.2.0/24  
 - AZ: eu-west-1a
-- 
+  
 ![Captura de arquitectura](./imagenes/Subredes.png)
 
 ---
@@ -247,8 +246,6 @@ VPC → Internet Gateways → crear Internet Gateway
 Seleccionar IGW → Acciones → Conectar to VPC  
 *Descripción de la imagen*
 ![Captura de arquitectura](./imagenes/Gatewey.png)
-
-
 
 ---
 
