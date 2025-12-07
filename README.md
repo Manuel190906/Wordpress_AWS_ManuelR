@@ -33,74 +33,138 @@
 
 ## 3. Aprovisionamiento (Script Bash)
 
-Archivo: `deploy_wordpress.sh`
+Balanceador: ``
+
+```bash
+<VirtualHost *:80>
+    ServerName manuelraws.myddns.me
+    Redirect permanent / https://manuelraws.myddns.me/
+</VirtualHost>
+EOF
+
+sudo tee /etc/apache2/sites-available/load-balancer-ssl.conf > /dev/null <<EOF
+<IfModule mod_ssl.c>
+<VirtualHost *:443>
+    ServerName manuelraws.myddns.me
+
+    SSLEngine On
+    SSLCertificateFile /etc/letsencrypt/live/manuelraws.myddns.me/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/manuelraws.myddns.me/privkey.pem
+
+    <Proxy "balancer://mycluster">
+        ProxySet stickysession=JSESSIONID|ROUTEID
+        BalancerMember http://10.0.1.26:80
+        BalancerMember http://10.0.1.61:80
+    </Proxy>
+
+    ProxyPass "/" "balancer://mycluster/"
+    ProxyPassReverse "/" "balancer://mycluster/"
+</VirtualHost>
+</IfModule>
+EOF
+
+sudo a2dissite 000-default.conf
+sudo a2ensite load-balancer.conf
+sudo a2ensite load-balancer-ssl.conf
+sudo systemctl reload apache2
+ssh -i "vockey.pem" admin@100.30.149.125
+```
+
+NFS: ``
 
 ```bash
 #!/bin/bash
-# Script de aprovisionamiento WordPress HA en AWS
-# Autor: Manuel Ramírez Rodríguez
+set -e
+sudo hostnamectl set-hostname WEB1manuelraws
+sudo apt update
+sudo apt install nfs-common apache2 php libapache2-mod-php php-mysql php-curl php-gd php-xml php-mbstring php-xmlrpc php-zip php-soap php-intl -y
 
-ALUMNO="Manuel"
-DOMAIN="midominio.com"
-WP_DIR="/var/www/html/wordpress"
+sudo mkdir -p /nfs/general
 
-setup_balanceador() {
-  hostnamectl set-hostname "Balanceador${ALUMNO}"
-  apt update && apt install -y apache2
-  a2enmod proxy proxy_balancer proxy_http ssl
-  cat <<EOF > /etc/apache2/sites-available/000-default.conf
+sudo mount 10.0.1.100:/var/nfs/general /nfs/general
+echo "10.0.1.100:/var/nfs/general  /nfs/general  nfs _netdev,auto,nofail,noatime,nolock,intr,tcp,actimeo=1800 0 0" | sudo tee -a /etc/fstab
+
+sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/wordpress.conf
+
+sudo tee /etc/apache2/sites-available/wordpress.conf > /dev/null <<EOF
 <VirtualHost *:80>
-  ProxyPreserveHost On
-  ProxyPass / balancer://cluster/
-  ProxyPassReverse / balancer://cluster/
+    ServerName https://manuelraws.myddns.me
+    DocumentRoot /nfs/general/wordpress/
+
+    <Directory /nfs/general/wordpress>
+        Options +FollowSymlinks
+        AllowOverride All
+        Require all granted
+    </Directory>
 </VirtualHost>
-
-<Proxy balancer://cluster>
-  BalancerMember http://Web1${ALUMNO}:80
-  BalancerMember http://Web2${ALUMNO}:80
-</Proxy>
 EOF
-  systemctl restart apache2
-}
 
-setup_web() {
-  hostnamectl set-hostname "$1${ALUMNO}"
-  apt update && apt install -y apache2 php php-mysql nfs-common
-  mkdir -p $WP_DIR
-  echo "$2:/var/www/html/wordpress $WP_DIR nfs defaults 0 0" >> /etc/fstab
-  mount -a
-  systemctl restart apache2
-}
+sudo a2dissite 000-default.conf
+sudo a2ensite wordpress.conf
+sudo systemctl reload apache2
+```
 
-setup_nfs() {
-  hostnamectl set-hostname "NFS${ALUMNO}"
-  apt update && apt install -y nfs-kernel-server
-  mkdir -p $WP_DIR
-  chown -R www-data:www-data $WP_DIR
-  echo "/var/www/html/wordpress *(rw,sync,no_subtree_check)" >> /etc/exports
-  exportfs -a
-  systemctl restart nfs-kernel-server
-}
+WEB's: ``
 
-setup_db() {
-  hostnamectl set-hostname "DB${ALUMNO}"
-  apt update && apt install -y mariadb-server
-  mysql -e "CREATE DATABASE wordpress;"
-  mysql -e "CREATE USER 'wpuser'@'%' IDENTIFIED BY 'wpPass123';"
-  mysql -e "GRANT ALL PRIVILEGES ON wordpress.* TO 'wpuser'@'%';"
-  mysql -e "FLUSH PRIVILEGES;"
-}
+```bash
 
-customize_wp() {
-  echo "<h1>WordPress de $ALUMNO</h1>" > $WP_DIR/index.php
-}
+#!/bin/bash
+set -e
+sudo hostnamectl set-hostname WEBmanuelramirez
 
-case $1 in
-  balanceador) setup_balanceador ;;
-  web1) setup_web "Web1" "NFS${ALUMNO}" ;;
-  web2) setup_web "Web2" "NFS${ALUMNO}" ;;
-  nfs) setup_nfs ;;
-  db) setup_db ;;
-  wp) customize_wp ;;
-  *) echo "Uso: $0 {balanceador|web1|web2|nfs|db|wp}" ;;
-esac
+sudo apt update
+sudo apt install nfs-common apache2 php libapache2-mod-php php-mysql php-curl php-gd php-xml php-mbstring -y
+
+sudo mkdir -p /nfs/general
+
+sudo mount 10.0.1.100:/var/nfs/general /nfs/general
+echo "10.0.1.100:/var/nfs/general  /nfs/general  nfs _netdev,auto,nofail,noatime,nolock,intr,tcp,actimeo=1800 0 0" | sudo tee -a /etc/fstab
+
+sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/wordpress.conf
+
+sudo tee /etc/apache2/sites-available/wordpress.conf > /dev/null <<EOF
+<VirtualHost *:80>
+    ServerName https://manuelraws.myddns.me
+    DocumentRoot /nfs/general/wordpress/
+
+    <Directory /nfs/general/wordpress>
+        Options +FollowSymlinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+EOF
+
+sudo a2dissite 000-default.conf
+sudo a2ensite wordpress.conf
+sudo systemctl reload apache2
+```
+WEB's: ``
+
+```bash
+#!/bin/bash
+set -e
+
+# Cambiar hostname
+sudo hostnamectl set-hostname DBmanuelrwordpress
+
+# Instalar MariaDB
+sudo apt update
+sudo apt install mariadb-server -y
+
+sudo mysql <<EOF
+CREATE DATABASE manuelrwordpress DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+
+CREATE USER 'manuelr'@'10.0.1.61' IDENTIFIED BY 'abcd';
+GRANT ALL PRIVILEGES ON manuelrwordpress.* TO 'manuelr'@'10.0.1.61';
+
+CREATE USER 'manuelr'@'10.0.1.26' IDENTIFIED BY 'abcd';
+GRANT ALL PRIVILEGES ON manuelrwordpress.* TO 'manuelr'@'10.0.1.26';
+
+FLUSH PRIVILEGES;
+EOF
+
+sudo sed -i 's/^bind-address.*/bind-address = 10.0.2.244/' /etc/mysql/mariadb.conf.d/50-server.cnf
+
+sudo systemctl restart mariadb
+```
