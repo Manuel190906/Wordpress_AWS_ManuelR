@@ -1,5 +1,24 @@
-# Despliegue WordPress HA en AWS – Documento Técnico
+# Despliegue WordPress en AWS – Documento Técnico
 
+Índice del documento
+1. Arquitectura
+   1.1 Capas
+   1.2 Reglas de conectividad
+
+2. Seguridad 
+2.1 Grupos de seguridad 
+2.2 ACLs
+
+3. Aprovisionamiento (Scripts Bash) 
+3.1 Balanceador 
+3.2 NFS 
+3.3 Webs 
+3.4 Base de datos
+
+4. Requisitos de la tarea y criterios de evaluación 
+4.1 Infraestructura y servicios 
+4.2 Entregables 
+4.3 Calificación y puntos
 ## 1. Arquitectura
 
 ### Capas
